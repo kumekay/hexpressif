@@ -1,38 +1,43 @@
+#! /usr/bin/env python3
+
 import gc
 import sys
 
-import neopixel
-import uasyncio as asyncio
-from machine import Pin
+from board import BLACK, RED, GREEN, GRAY_50, BLUE, Board, Layout, Hex
 
 gc.collect()
 
-from icon import icon
-from icon2 import icon as icon2
+if sys.implementation.name == "micropython":
+    from display_led import Display
+    from config import LED_CONFIG as DISPLAY_CONFIG
 
-PIXEL_PIN = 7
+    import uasyncio as asyncio
+else:
+    from display_ws import Display
+    from config import WS_CONFIG as DISPLAY_CONFIG
 
-PIX_COUNT = 16 * 16
+    import asyncio
 
-BRIGHTNESS = 0.5
+gc.collect()
 
 
 async def main():
-    pin = Pin(PIXEL_PIN, Pin.OUT)
-    pixels = neopixel.NeoPixel(pin, PIX_COUNT)
+    layout = Layout.from_json("layout.json")
+    display = Display(layout=layout, fill=GRAY_50, **DISPLAY_CONFIG)
+
+    center = Hex(0, 0)
     while True:
-        for i in [icon, icon2]:
-            for p in range(PIX_COUNT):
-                pixels[p] = [int(el * BRIGHTNESS) for el in i[p * 3 : p * 3 + 3]]
-
-            pixels.write()
-
-            await asyncio.sleep(2)
+        for color in [RED, GREEN, BLUE, BLACK]:
+            display.write(Board({center: color}))
+            await asyncio.sleep(0.7)
 
 
 try:
     asyncio.run(main())
 except (KeyboardInterrupt, Exception) as e:
-    sys.print_exception(e)
+    if "print_exception" in dir(sys):
+        sys.print_exception(e)  # type: ignore
+    else:
+        raise e
 finally:
     asyncio.new_event_loop()

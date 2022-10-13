@@ -1,12 +1,16 @@
-from fastapi import FastAPI, WebSocket
-from fastapi.responses import HTMLResponse
+import json
+from board import Layout, Board, BLACK
+from display import BaseDisplay
 
-app = FastAPI()
-
-HTML = ''
-
-@app.get("/")
-async def get():
-    return HTMLResponse(HTML)
+# import asyncio
+# from websockets import connect
 
 
+class Display(BaseDisplay):
+    def __init__(self, addr: str, *args, **kwargs) -> None:
+        super(Display, self).__init__(*args, **kwargs)
+
+        self.addr = addr
+
+    def write(self, board):
+        print(json.dumps(board.to_json()))
