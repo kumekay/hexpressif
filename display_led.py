@@ -11,17 +11,31 @@ except ImportError:
 class Display(BaseDisplay):
     def __init__(
         self, pin=1, color_map=(0, 1, 2), *args, **kwargs
-    ):  # type: (int, tuple(), Any, Any) -> None
+    ):  # type: (int, tuple[int, int, int], Any, Any) -> None
         self.pin = Pin(pin, Pin.OUT)
         self._pixels = neopixel.NeoPixel(self.pin, len(kwargs["layout"]))
 
-        self.color_map = color_map
+        self._color_map = color_map
 
         super(Display, self).__init__(*args, **kwargs)
 
-    def write(self, board):
+    async def init(self):  # type: () -> BaseDisplay
+        await super().init()
+
+        if self.color is not None:
+            await self.fill(self.color)
+
+        return self
+
+    async def write(self, board):
+        await super().write(board)
+
         for pixel, color in board.pixels.items():
             rgb = color.to_json()
-            self._pixels[self.layout[pixel]] = [rgb[i] for i in self.color_map]
+
+            if pixel not in self.layout_dict:
+                continue
+
+            self._pixels[self.layout_dict[pixel]] = [rgb[i] for i in self._color_map]
 
         self._pixels.write()

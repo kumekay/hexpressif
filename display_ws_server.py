@@ -14,7 +14,12 @@ async def get():
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+    subscribed = False
     while True:
         data = await websocket.receive_json()
-        # await websocket.send_text(f"Message text was: {data}")
-        print(data)
+        match data[0]:
+            case "sub":
+                subscribed = True
+            case "board" | "layout":
+                if subscribed:
+                    await websocket.send_json(data)

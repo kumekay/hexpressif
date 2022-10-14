@@ -43,7 +43,11 @@ class Board:
         if pixels is None:
             self.pixels = {}
         else:
-            self.pixels = dict(pixels)
+            self.pixels = pixels
+
+    @classmethod
+    def from_list(cls, hexes, color):  # type: (list[Hex], Color) -> Board
+        return cls({h: color for h in hexes})
 
     def __iter__(self):
         return iter(self.pixels)
@@ -69,9 +73,13 @@ class Layout:
         return iter(self.pixels)
 
     def to_json(self):
-        return [h.to_json for h in self.pixels]
+        return [h.to_json() for h in self.pixels]
 
     @classmethod
-    def from_json(cls, path):
+    def from_json(cls, data):  # type: (str) -> Layout
+        return cls([Hex(q, r) for (q, r) in json.loads(data)])
+
+    @classmethod
+    def from_file(cls, path):  # type: (str) -> Layout
         with open(path) as f:
-            return cls([Hex(q, r) for (q, r) in json.loads(f.read())])
+            return cls.from_json(f.read())
