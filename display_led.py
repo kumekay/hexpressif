@@ -30,9 +30,7 @@ class Display(BaseDisplay):
     async def write(self, board):
         await super().write(board)
 
-        for pixel, color in board.pixels.items():
-            rgb = color.to_json()
-
+        for pixel, rgb in board:
             if pixel not in self.layout_dict:
                 continue
 

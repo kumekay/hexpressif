@@ -5,6 +5,7 @@ import gc
 import sys
 
 from board import BLACK, RED, GREEN, WHITE, BLUE, Layout
+from hex_math import filled_circle, line
 
 gc.collect()
 
@@ -21,55 +22,69 @@ else:
 
 gc.collect()
 
-from random import randint
+CONFIG = {"logo_color": RED}
+
+ESP_LOGO = [
+    # Firt pixel
+    (-2, 4),
+    # U part
+    (0, 3),
+    (0, 2),
+    (-1, 2),
+    (-2, 2),
+    (-3, 3),
+    (-4, 3),
+    (-4, 2),
+    (-3, 1),
+    (-2, 0),
+    (-1, 0),
+    (0, 0),
+    (1, 0),
+    (2, 0),
+    (2, 1),
+    (2, 2),
+    # C part
+    (4, -1),
+    (4, -2),
+    (3, -2),
+    (2, -2),
+    (1, -2),
+    (0, -2),
+    (-1, -2),
+    (-2, -2),
+    (-3, -1),
+    # Line
+    (0, -4),
+    (1, -4),
+    (2, -4),
+    (3, -4),
+    (4, -4),
+]
 
 
-def filled_circle(radius):  # type: (int) -> list[tuple[int,int]]
-    hexes = []  # type: list[tuple[int,int]]
-
-    for q in range(-radius, radius + 1):
-        for r in range(-radius, radius + 1):
-            for s in range(-radius, radius + 1):
-                if q + r + s == 0:
-                    hexes.append((q, r))
-
-    return hexes
+async def logo_basic(display, color):
+    await display.write([(h, color) for h in ESP_LOGO])
+    gc.collect()
 
 
-def distance(a, b):  # type: (tuple[int,int], tuple[int,int]) -> int
-    aq, ar = a
-    bq, br = b
-    return int((abs(aq - bq) + abs(aq + ar - bq - br) + abs(ar - br)) / 2)
+async def logo_row(display, color):
+    for h in ESP_LOGO:
+        await display.write([(h, color)])
+        await asyncio.sleep(0.1)
+    gc.collect()
 
 
-def interpolate_num(a, b, t):  # type: (float, float, float) -> float
-    return a + (b - a) * t
+async def logo_lines(display, color, bg_color):
+    head = ESP_LOGO[0]
+    for h in list(reversed(ESP_LOGO)):
+        l = line(head, h)
+        for i, p in enumerate(l[1:]):
+            await display.write([(p, color), (l[i], bg_color)])
+            await asyncio.sleep(0.05)
 
-
-def interpolate_hex(
-    a, b, t
-):  # type: (tuple[int,int], tuple[int,int], float) -> tuple[float,float]
-    return (interpolate_num(a[0], b[0], t), interpolate_num(a[1], b[1], t))
-
-
-def round_hex(hf):  # type: (tuple[float,float]) -> tuple[int,int]
-    q_grid = round(hf[0])
-    r_grid = round(hf[1])
-    q = hf[0] - q_grid
-    r = hf[1] - r_grid
-
-    if abs(q) >= abs(r):
-        return (q_grid + round(q + 0.5 * r), r_grid)
-    else:
-        return (q_grid, r_grid + round(r + 0.5 * q))
-
-
-def line(a, b):  # type: (tuple[int,int], tuple[int,int]) -> list[tuple[int,int]]
-    N = distance(a, b)
-    results = []  # list[tuple[int,int]]
-    for i in range(N):
-        results.append(round_hex(interpolate_hex(a, b, 1.0 / N * i)))
-    return results
+    await display.write([(head, color)])
+    await asyncio.sleep(0.05)
+    gc.collect()
 
 
 async def circles(display, colors):
@@ -88,7 +103,22 @@ async def main():
         **DISPLAY_CONFIG,
     ).init()
 
-    await circles(display, [RED, GREEN, BLUE, WHITE, BLACK])
+    while True:
+        await circles(display, [RED, GREEN, BLUE, BLACK, WHITE])
+        await asyncio.sleep(0.1)
+
+        await display.fill(WHITE)
+        await asyncio.sleep(1)
+        await logo_basic(display, CONFIG["logo_color"])
+        await asyncio.sleep(2)
+
+        await display.fill(WHITE)
+        await logo_row(display, CONFIG["logo_color"])
+        await asyncio.sleep(2)
+
+        await display.fill(WHITE)
+        await logo_lines(display, CONFIG["logo_color"], WHITE)
+        await asyncio.sleep(2)
 
 
 try:

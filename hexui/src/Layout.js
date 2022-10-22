@@ -74,6 +74,7 @@ class Layout extends React.Component {
             const [x, y] = coords(hq, hr);
             return < g transform={`translate(${x},${y})`} >
                 <circle cx="0" cy="0" r="48" stroke="#aaa" strokeWidth="2" fill={`rgb(${r},${g},${b})`} />
+                <text x="0" y="0" text-anchor="middle" stroke="#aaa" stroke-width="1px" dy=".3em">{hq}, {hr}</text>
             </g >
         }
         );

@@ -1,4 +1,10 @@
 from board import Layout, BLACK
+import sys
+
+if sys.implementation.name == "micropython":
+    import uasyncio as asyncio
+else:
+    import asyncio
 
 
 class Uninitialized(Exception):
@@ -26,3 +32,4 @@ class BaseDisplay:
 
     async def fill(self, color=BLACK):  # type: (tuple[int, int, int]) -> None
         await self.write([(h, color) for h in self.layout_dict.keys()])
+        await asyncio.sleep(0.1)
