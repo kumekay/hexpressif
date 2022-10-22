@@ -9,9 +9,12 @@ from hex_math import filled_circle, line
 
 gc.collect()
 
-if sys.implementation.name == "micropython":
+IS_MICROPYTHON = sys.implementation.name == "micropython"
+
+if IS_MICROPYTHON:
     from display_led import Display
     from config import LED_CONFIG as DISPLAY_CONFIG
+    from config import WIFI_CONFIG
 
     import uasyncio as asyncio
 else:
@@ -95,7 +98,41 @@ async def circles(display, colors):
     gc.collect()
 
 
+async def start_ap(ssid, password):
+    import network
+
+    wlan = network.WLAN(network.AP_IF)
+    wlan.active(True)
+    wlan.config(essid=ssid, authmode=network.AUTH_WPA_WPA2_PSK, password=password)
+    while not wlan.active():
+        asyncio.sleep_ms(10)
+    print("network config:", wlan.ifconfig())
+    return True
+
+
+async def start_ws():
+    from microdot_asyncio import Microdot
+
+    app = Microdot()
+
+    @app.route("/color", methods=["POST"])
+    async def index(request):
+        CONFIG["logo_color"] = tuple(request.json)
+        return {"status": "ok"}
+
+    asyncio.create_task(app.start_server(port=6000, debug=True))
+
+
+async def start_server():
+    if IS_MICROPYTHON:
+        await start_ap(WIFI_CONFIG["ssid"], WIFI_CONFIG["pass"])
+
+    await start_ws()
+
+
 async def main():
+    asyncio.create_task(start_server())
+
     layout = Layout.from_file("layout.json")
     display = await Display(
         layout=layout,
