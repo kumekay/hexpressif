@@ -1,4 +1,4 @@
-from board import Layout, Board, BLACK, Color
+from board import Layout, BLACK
 
 
 class Uninitialized(Exception):
@@ -6,8 +6,10 @@ class Uninitialized(Exception):
 
 
 class BaseDisplay:
-    def __init__(self, layout, color=None):  # type: (Layout, Color | None) -> None
-        self.layout = layout
+    def __init__(
+        self, layout, color=None
+    ):  # type: (Layout, tuple[int, int, int] | None) -> None
+        self.layout = [tuple(v) for v in layout]
         self.layout_dict = {v: k for (k, v) in enumerate(layout)}
         self.color = color
         self._initialized = False
@@ -16,10 +18,11 @@ class BaseDisplay:
         self._initialized = True
         return self
 
-    async def write(self, board):  # type: (Board) -> None
+    async def write(
+        self, board
+    ):  # type: (list[tuple[tuple[int, int], tuple[int, int, int]]]) -> None
         if not self._initialized:
             raise Uninitialized("You must await 'init()' before using display")
 
-    async def fill(self, color=BLACK):  # type: (Color) -> None
-        board = Board({hex: color for hex in self.layout_dict})
-        await self.write(board)
+    async def fill(self, color=BLACK):  # type: (tuple[int, int, int]) -> None
+        await self.write([(h, color) for h in self.layout_dict.keys()])

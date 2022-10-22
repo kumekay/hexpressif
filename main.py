@@ -4,7 +4,7 @@ import gc
 
 import sys
 
-from board import BLACK, RED, GREEN, WHITE, BLUE, Board, Layout, Hex, Color
+from board import BLACK, RED, GREEN, WHITE, BLUE, Layout
 
 gc.collect()
 
@@ -24,76 +24,71 @@ gc.collect()
 from random import randint
 
 
-class HexFloat:
-    def __init__(self, q, r):  # type: (float, float) -> None
-        self.q = q
-        self.r = r
-
-
-def filled_circle(radius):  # type: (int) -> list[Hex]
-    hexes = []  # type: list[Hex]
+def filled_circle(radius):  # type: (int) -> list[tuple[int,int]]
+    hexes = []  # type: list[tuple[int,int]]
 
     for q in range(-radius, radius + 1):
         for r in range(-radius, radius + 1):
             for s in range(-radius, radius + 1):
                 if q + r + s == 0:
-                    hexes.append(Hex(q, r))
+                    hexes.append((q, r))
 
     return hexes
 
 
-def distance(a, b):  # type: (Hex, Hex) -> int
-    return (abs(a.q - b.q) + abs(a.q + a.r - b.q - b.r) + abs(a.r - b.r)) / 2
+def distance(a, b):  # type: (tuple[int,int], tuple[int,int]) -> int
+    aq, ar = a
+    bq, br = b
+    return int((abs(aq - bq) + abs(aq + ar - bq - br) + abs(ar - br)) / 2)
 
 
 def interpolate_num(a, b, t):  # type: (float, float, float) -> float
     return a + (b - a) * t
 
 
-def interpolate_hex(a, b, t):  # type: (Hex, Hex, float) -> HexFloat
-    return HexFloat(interpolate_num(a.q, b.q, t), interpolate_num(a.r, b.r, t))
+def interpolate_hex(
+    a, b, t
+):  # type: (tuple[int,int], tuple[int,int], float) -> tuple[float,float]
+    return (interpolate_num(a[0], b[0], t), interpolate_num(a[1], b[1], t))
 
 
-def round_hex(hf):  # type: (HexFloat) -> Hex
-    q_grid = round(hf.q)
-    r_grid = round(hf.r)
-    q = hf.q - q_grid
-    r = hf.r - r_grid
+def round_hex(hf):  # type: (tuple[float,float]) -> tuple[int,int]
+    q_grid = round(hf[0])
+    r_grid = round(hf[1])
+    q = hf[0] - q_grid
+    r = hf[1] - r_grid
 
     if abs(q) >= abs(r):
-        return Hex(q_grid + round(q + 0.5 * r), r_grid)
+        return (q_grid + round(q + 0.5 * r), r_grid)
     else:
-        return Hex(q_grid, r_grid + round(r + 0.5 * q))
+        return (q_grid, r_grid + round(r + 0.5 * q))
 
 
-def line(a, b):  # type: (Hex, Hex) -> list[Hex]
+def line(a, b):  # type: (tuple[int,int], tuple[int,int]) -> list[tuple[int,int]]
     N = distance(a, b)
-    results = []  # list[Hex]
+    results = []  # list[tuple[int,int]]
     for i in range(N):
         results.append(round_hex(interpolate_hex(a, b, 1.0 / N * i)))
     return results
 
 
+async def circles(display, colors):
+    for color in colors:
+        for r in range(5):
+            await display.write([(h, color) for h in filled_circle(r)])
+            await asyncio.sleep(0.4)
+    gc.collect()
+
+
 async def main():
     layout = Layout.from_file("layout.json")
     display = await Display(
-        layout=layout, color=Color(10, 10, 10), **DISPLAY_CONFIG
+        layout=layout,
+        color=(10, 10, 10),
+        **DISPLAY_CONFIG,
     ).init()
 
-    COLORS = [RED, GREEN, BLUE, WHITE, BLACK]
-    while True:
-        for color in COLORS:
-            for r in range(5):
-                await display.write(Board.from_list(filled_circle(r), color))
-                await asyncio.sleep(0.5)
-        gc.collect()
-
-        for _ in range(10):
-            x = Hex(randint(-4, 4), randint(-4, 4))
-            y = Hex(randint(-4, 4), randint(-4, 4))
-            await display.write(Board.from_list(line(x, y), COLORS[randint(0, 3)]))
-            await asyncio.sleep(1)
-        gc.collect()
+    await circles(display, [RED, GREEN, BLUE, WHITE, BLACK])
 
 
 try:
