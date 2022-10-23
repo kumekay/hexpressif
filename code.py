@@ -15,12 +15,14 @@ You can add text with print_text function. You have to provide all parameters! E
 DO NOT EDIT CODE WHICH DOES NOT START WITH print_text IF YOU DO NOT KNOW WHAT YOU ARE DOING!
 """
 
+
 def print_text(text, scale, x_cord, y_cord, text_color):
     group = displayio.Group(scale=scale, x=x_cord, y=y_cord)
     text_var = text
     area = label.Label(terminalio.FONT, text=text, color=text_color)
-    group.append(area) # Add this text to the text group
+    group.append(area)  # Add this text to the text group
     g.append(group)
+
 
 import time
 import board
@@ -30,8 +32,16 @@ import adafruit_ssd1680
 import touchio
 import neopixel
 from adafruit_display_text import label
+import wifi
+import adafruit_requests
+import socketpool
 
-#Set color values
+
+# WIFI
+SSID = "esp_logo"
+PASS = "Espressif32c3"
+
+# Set color values
 BLACK = 0x000000
 WHITE = 0xFFFFFF
 
@@ -73,7 +83,11 @@ DISPLAY_WIDTH = 250
 DISPLAY_HEIGHT = 122
 
 display = adafruit_ssd1680.SSD1680(
-    display_bus, width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT, rotation=270, busy_pin=epd_busy
+    display_bus,
+    width=DISPLAY_WIDTH,
+    height=DISPLAY_HEIGHT,
+    rotation=270,
+    busy_pin=epd_busy,
 )
 
 pixel_pin = board.D18
@@ -94,31 +108,54 @@ t = displayio.TileGrid(background_bitmap, pixel_shader=palette)
 g.append(t)
 
 # Draw simple text using the built-in font into a displayio group
-print_text("Maker Faire", 2, 35, 20, BLACK)
-print_text("BRNO 2022", 4, 25, 65, BLACK)
+print_text("Push the buttons!", 2, 35, 20, BLACK)
+print_text("Maker Faire", 3, 25, 65, BLACK)
 print_text("ESPRESSIF Systems", 2, 25, 105, BLACK)
 
-display.show(g)
 
+# Connect to WIFI
+for network in wifi.radio.start_scanning_networks():
+    print(network, network.ssid, network.channel)
+wifi.radio.stop_scanning_networks()
+
+wifi.radio.connect(SSID, PASS)
+
+print("my IP addr:", wifi.radio.ipv4_address)
+
+
+pool = socketpool.SocketPool(wifi.radio)
+requests = adafruit_requests.Session(pool)
+
+print_text(".", 2, 10, 10, BLACK)
+display.show(g)
 display.refresh()
+
+
+def send_color(color):
+    requests.post("http://192.168.4.1:6000/color", json=color)
+
 
 while True:
     if touch_1.value:
         # Turn off the LED
         pixels.fill(RED)
         pixels.show()
+        send_color(RED)
     if touch_2.value:
         # Set LED to red
         pixels.fill(GREEN)
         pixels.show()
+        send_color(GREEN)
     if touch_3.value:
         # Set LED to green
         pixels.fill(BLUE)
         pixels.show()
+        send_color(BLUE)
     if touch_4.value:
         # Set LED to blue
         pixels.fill(YELLOW)
         pixels.show()
+        send_color(YELLOW)
     if touch_5.value:
         # Turn off the LED
         pixels.fill(OFF)

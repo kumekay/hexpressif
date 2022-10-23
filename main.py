@@ -65,28 +65,27 @@ ESP_LOGO = [
 ]
 
 
-async def logo_basic(display, color):
-    await display.write([(h, color) for h in ESP_LOGO])
+async def logo_basic(display):
+    await display.write([(h, CONFIG["logo_color"]) for h in ESP_LOGO])
     gc.collect()
 
 
-async def logo_row(display, color):
+async def logo_row(display):
     for h in ESP_LOGO:
-        await display.write([(h, color)])
-        await asyncio.sleep(0.1)
+        await display.write([(h, CONFIG["logo_color"])])
+        await asyncio.sleep(0.05)
     gc.collect()
 
 
-async def logo_lines(display, color, bg_color):
+async def logo_lines(display, bg_color):
     head = ESP_LOGO[0]
     for h in list(reversed(ESP_LOGO)):
         l = line(head, h)
         for i, p in enumerate(l[1:]):
-            await display.write([(p, color), (l[i], bg_color)])
+            await display.write([(p, CONFIG["logo_color"]), (l[i], bg_color)])
             await asyncio.sleep(0.05)
 
-    await display.write([(head, color)])
-    await asyncio.sleep(0.05)
+    await display.write([(head, CONFIG["logo_color"])])
     gc.collect()
 
 
@@ -141,20 +140,16 @@ async def main():
     ).init()
 
     while True:
-        await circles(display, [RED, GREEN, BLUE, BLACK, WHITE])
-        await asyncio.sleep(0.1)
-
         await display.fill(WHITE)
-        await asyncio.sleep(1)
-        await logo_basic(display, CONFIG["logo_color"])
+        await logo_basic(display)
         await asyncio.sleep(2)
 
         await display.fill(WHITE)
-        await logo_row(display, CONFIG["logo_color"])
+        await logo_row(display)
         await asyncio.sleep(2)
 
         await display.fill(WHITE)
-        await logo_lines(display, CONFIG["logo_color"], WHITE)
+        await logo_lines(display, WHITE)
         await asyncio.sleep(2)
 
 
