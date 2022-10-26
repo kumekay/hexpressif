@@ -3,10 +3,7 @@ def filled_circle(radius):  # type: (int) -> list[tuple[int,int]]
 
     for q in range(-radius, radius + 1):
         for r in range(-radius, radius + 1):
-            for s in range(-radius, radius + 1):
-                if q + r + s == 0:
-                    hexes.append((q, r))
-
+            hexes.extend((q, r) for s in range(-radius, radius + 1) if q + r + s == 0)
     return hexes
 
 
@@ -40,10 +37,7 @@ def round_hex(hf):  # type: (tuple[float,float]) -> tuple[int,int]
 
 def line(a, b):  # type: (tuple[int,int], tuple[int,int]) -> list[tuple[int,int]]
     N = distance(a, b)
-    results = []  # list[tuple[int,int]]
-    for i in range(N):
-        results.append(round_hex(interpolate_hex(a, b, 1.0 / N * i)))
-
+    results = [round_hex(interpolate_hex(a, b, 1.0 / N * i)) for i in range(N)]
     results.append(b)
 
     return results
