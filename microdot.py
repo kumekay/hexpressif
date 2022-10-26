@@ -78,8 +78,7 @@ def urldecode(string):
             result.append("%")
         else:
             code = item[:2]
-            result.append(chr(int(code, 16)))
-            result.append(item[2:])
+            result.extend((chr(int(code, 16)), item[2:]))
     return "".join(result)
 
 
@@ -340,13 +339,13 @@ class Response:
         """
         http_cookie = "{cookie}={value}".format(cookie=cookie, value=value)
         if path:
-            http_cookie += "; Path=" + path
+            http_cookie += f"; Path={path}"
         if domain:
-            http_cookie += "; Domain=" + domain
+            http_cookie += f"; Domain={domain}"
         if expires:
             http_cookie += "; Expires=" + expires.strftime("%a, %d %b %Y %H:%M:%S GMT")
         if max_age:
-            http_cookie += "; Max-Age=" + str(max_age)
+            http_cookie += f"; Max-Age={str(max_age)}"
         if secure:
             http_cookie += "; Secure"
         if http_only:
@@ -462,7 +461,7 @@ class URLPattern:
             else:
                 self.pattern += "/{segment}".format(segment=segment)
         if use_regex:
-            self.pattern = re.compile("^" + self.pattern + "$")
+            self.pattern = re.compile(f"^{self.pattern}$")
 
     def match(self, path):
         if isinstance(self.pattern, str):
@@ -473,13 +472,11 @@ class URLPattern:
         if not g:
             return
         args = {}
-        i = 1
-        for arg in self.args:
+        for i, arg in enumerate(self.args, start=1):
             value = g.group(i)
             if arg["type"] == "int":
                 value = int(value)
             args[arg["name"]] = value
-            i += 1
         return args
 
 
@@ -727,11 +724,7 @@ class Microdot:
         return f
 
     def dispatch_request(self, sock, addr):
-        if not hasattr(sock, "readline"):  # pragma: no cover
-            stream = sock.makefile("rwb")
-        else:
-            stream = sock
-
+        stream = sock if hasattr(sock, "readline") else sock.makefile("rwb")
         req = Request.create(self, stream, addr)
         if req:
             f = self.find_route(req)
